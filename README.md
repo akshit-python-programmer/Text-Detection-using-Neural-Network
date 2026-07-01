@@ -107,8 +107,4 @@ A few directions I'd take this if I revisited it:
 
 The dataset (`myData/`) contains 10,160 grayscale images of handwritten digits, organised into ten folders (`0`–`9`) with 1,016 images each.
 
-## Author
-
-**Akshit Kumar Lall** — [@akshit-python-programmer](https://github.com/akshit-python-programmer)
-
 Originally built in 2021 (class 9) and shared publicly as part of my project portfolio.
