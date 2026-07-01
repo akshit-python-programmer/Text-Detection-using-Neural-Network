@@ -1,172 +1,171 @@
-"""
-Handwritten Digit Recognition — Training script (modernized).
-
-This is an updated, runnable version of the original `train.py` I wrote in
-class 9 (2021). The logic and CNN architecture are unchanged; only the parts
-that broke on newer TensorFlow/Keras have been fixed:
-
-  - imports moved to `tensorflow.keras.*`
-  - `Adam(lr=...)`            ->  `Adam(learning_rate=...)`
-  - `model.fit_generator()`  ->  `model.fit()` (accepts generators directly)
-  - added a fixed random_state for reproducible splits
-  - saves to the modern `.keras` format
-
-Run:  python modern/train.py
-(Run it from the project root so the "myData" path resolves.)
-"""
-
-import os
-import numpy as np
 import cv2
+import numpy as np
+import os
 from tqdm import tqdm
-import matplotlib.pyplot as plt
+import pickle
+
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot  as plt
 
-import tensorflow as tf
-from tensorflow.keras.utils import to_categorical
+# updated these imports so it runs on the newer tensorflow
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Dropout,Flatten
+from tensorflow.keras.layers import Conv2D,MaxPooling2D
 
-# ----------------------------- parameters --------------------------------- #
-PATH = "myData"
-TEST_RATIO = 0.2
-VALIDATION_RATIO = 0.2
-IMAGE_DIMENSIONS = (32, 32, 3)
-BATCH_SIZE = 50
-EPOCHS = 10
-SEED = 42
-# -------------------------------------------------------------------------- #
+print('Program Started...')
 
-print("Program started...")
+############################
+path = "myData"
+test_ratio = 0.2
+validation_ratio = 0.2
+imageDimensions = (32,32,3)
+############################
+myList = os.listdir(path)
+print(f"Total No of Classes : {len(myList)}")
+noOfClasses = len(myList)
 
-class_folders = sorted(os.listdir(PATH))
-no_of_classes = len(class_folders)
-print(f"Total number of classes: {no_of_classes}")
+images = []
+classNo = []
 
-images, class_no = [], []
-for class_id in range(no_of_classes):
-    pic_list = os.listdir(os.path.join(PATH, str(class_id)))
-    for pic_name in tqdm(pic_list, desc=f"class {class_id}"):
-        cur_img = cv2.imread(os.path.join(PATH, str(class_id), pic_name))
-        cur_img = cv2.resize(cur_img, (IMAGE_DIMENSIONS[0], IMAGE_DIMENSIONS[1]))
-        images.append(cur_img)
-        class_no.append(class_id)
+for x in range(0,noOfClasses):
+    myPicList = os.listdir(path + "/" + str(x) )
+    for y in tqdm(myPicList):
+        curImg = cv2.imread(path + "/" + str(x) + "/" + str(y))
+        curImg = cv2.resize(curImg , (imageDimensions[0] , imageDimensions[1]))
+        images.append(curImg)
+        classNo.append(x)
+    print(x)
+
+print(len(images))
+print(len(classNo))
 
 images = np.array(images)
-class_no = np.array(class_no)
-print("Dataset shape:", images.shape)
+classNo = np.array(classNo)
+print(images.shape)
 
-# ----------------------------- split -------------------------------------- #
-X_train, X_test, y_train, y_test = train_test_split(
-    images, class_no, test_size=TEST_RATIO, random_state=SEED
-)
-X_train, X_validation, y_train, y_validation = train_test_split(
-    X_train, y_train, test_size=VALIDATION_RATIO, random_state=SEED
-)
-print("Train:", X_train.shape, "Test:", X_test.shape, "Val:", X_validation.shape)
+#### Splitting the Data
 
-# ------------------------ class distribution plot ------------------------- #
-samples_per_class = [int(np.sum(y_train == i)) for i in range(no_of_classes)]
-plt.figure(figsize=(10, 5))
-plt.bar(range(no_of_classes), samples_per_class)
-plt.title("Number of training images per class")
-plt.xlabel("Class ID")
-plt.ylabel("Number of images")
-plt.tight_layout()
-plt.savefig("class_distribution.png")
-print("Saved class_distribution.png")
+X_train , X_test , y_train , y_test = train_test_split(images , classNo , test_size=test_ratio )
+X_train , X_validation , y_train , y_validation = train_test_split(X_train , y_train , test_size=validation_ratio)
 
-# ----------------------------- preprocessing ------------------------------ #
-def pre_processing(img):
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+print(X_train.shape)
+print(X_test.shape)
+print(X_validation.shape)
+
+numberOfSamples = []
+for x in range(0,noOfClasses):
+    print( len(np.where(y_train==x)[0]) )
+    numberOfSamples.append( len(np.where(y_train==x)[0]) )
+
+print(numberOfSamples)
+
+plt.figure(figsize = (10,5))
+plt.bar(range(0,noOfClasses) , numberOfSamples)
+plt.title("No of images for each class")
+plt.xlabel("class Id")
+plt.ylabel("number.of images")
+plt.show()
+
+def preProcessing(img):
+    img = cv2.cvtColor(img , cv2.COLOR_BGR2GRAY)
     img = cv2.equalizeHist(img)
-    img = img / 255.0
+    img = img/255
     return img
 
-X_train = np.array([pre_processing(i) for i in X_train])
-X_test = np.array([pre_processing(i) for i in X_test])
-X_validation = np.array([pre_processing(i) for i in X_validation])
+X_train = np.array(list(map(preProcessing , X_train)))
+X_test = np.array(list(map(preProcessing , X_test)))
+X_validation = np.array(list(map(preProcessing , X_validation)))
 
-X_train = X_train.reshape(*X_train.shape, 1)
-X_test = X_test.reshape(*X_test.shape, 1)
-X_validation = X_validation.reshape(*X_validation.shape, 1)
+X_train = X_train.reshape(X_train.shape[0],X_train.shape[1],X_train.shape[2],1)
+X_test = X_test.reshape(X_test.shape[0],X_test.shape[1],X_test.shape[2],1)
+X_validation = X_validation.reshape(X_validation.shape[0],X_validation.shape[1],X_validation.shape[2],1)
 
-# ----------------------------- augmentation ------------------------------- #
-data_gen = ImageDataGenerator(
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    zoom_range=0.2,
-    shear_range=0.1,
-    rotation_range=10,
-)
-data_gen.fit(X_train)
+print(X_train.shape)
 
-y_train = to_categorical(y_train, no_of_classes)
-y_test = to_categorical(y_test, no_of_classes)
-y_validation = to_categorical(y_validation, no_of_classes)
+# img = X_train[30]
+# print(img.shape)
+# img = cv2.resize(img , (300,300))
+# cv2.imshow("preProcessed image" , img)
+# cv2.waitKey(0)
 
-# ------------------------------- model ------------------------------------ #
-def build_model():
-    no_of_filters = 60
-    size_of_filter1 = (5, 5)
-    size_of_filter2 = (3, 3)
-    size_of_pool = (2, 2)
-    no_of_nodes = 500
+#### IMAGE AUGMENTATION
+dataGen = ImageDataGenerator(width_shift_range=0.1,
+                             height_shift_range=0.1,
+                             zoom_range=0.2,
+                             shear_range=0.1,
+                             rotation_range=10)
+dataGen.fit(X_train)
 
-    model = Sequential([
-        Conv2D(no_of_filters, size_of_filter1,
-               input_shape=(IMAGE_DIMENSIONS[0], IMAGE_DIMENSIONS[1], 1),
-               activation="relu"),
-        Conv2D(no_of_filters, size_of_filter1, activation="relu"),
-        MaxPooling2D(pool_size=size_of_pool),
-        Conv2D(no_of_filters // 2, size_of_filter2, activation="relu"),
-        Conv2D(no_of_filters // 2, size_of_filter2, activation="relu"),
-        MaxPooling2D(pool_size=size_of_pool),
-        Dropout(0.5),
-        Flatten(),
-        Dense(no_of_nodes, activation="relu"),
-        Dropout(0.5),
-        Dense(no_of_classes, activation="softmax"),
-    ])
-    model.compile(Adam(learning_rate=0.001),
-                  loss="categorical_crossentropy",
-                  metrics=["accuracy"])
+y_train = to_categorical(y_train,noOfClasses)
+y_test = to_categorical(y_test,noOfClasses)
+y_validation = to_categorical(y_validation,noOfClasses)
+
+def myModel():
+    noOfFilters = 60
+    sizeOfFilter1 = (5,5)
+    sizeOfFilter2 = (3, 3)
+    sizeOfPool = (2,2)
+    noOfNodes= 500
+
+    model = Sequential()
+    model.add((Conv2D(noOfFilters,sizeOfFilter1,input_shape=(imageDimensions[0],
+                      imageDimensions[1],1),activation='relu')))
+    model.add((Conv2D(noOfFilters, sizeOfFilter1, activation='relu')))
+    model.add(MaxPooling2D(pool_size=sizeOfPool))
+    model.add((Conv2D(noOfFilters//2, sizeOfFilter2, activation='relu')))
+    model.add((Conv2D(noOfFilters//2, sizeOfFilter2, activation='relu')))
+    model.add(MaxPooling2D(pool_size=sizeOfPool))
+    model.add(Dropout(0.5))
+
+    model.add(Flatten())
+    model.add(Dense(noOfNodes,activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(noOfClasses, activation='softmax'))
+
+    model.compile(Adam(learning_rate=0.001),loss='categorical_crossentropy',metrics=['accuracy'])
     return model
 
-model = build_model()
-model.summary()
+model = myModel()
+print(model.summary())
 
-# ------------------------------- training --------------------------------- #
-history = model.fit(
-    data_gen.flow(X_train, y_train, batch_size=BATCH_SIZE),
-    steps_per_epoch=len(X_train) // BATCH_SIZE,
-    epochs=EPOCHS,
-    validation_data=(X_validation, y_validation),
-    shuffle=True,
-)
+batchSizeVal = 50
+epochsVal = 2
+stepsPerEpochVal = 2000
 
-# ------------------------------- results ---------------------------------- #
-plt.figure()
-plt.plot(history.history["loss"])
-plt.plot(history.history["val_loss"])
-plt.legend(["training", "validation"])
-plt.title("Loss")
-plt.xlabel("epoch")
-plt.savefig("loss.png")
+history = model.fit(dataGen.flow(X_train,y_train,
+                                 batch_size=batchSizeVal),
+                                 steps_per_epoch=stepsPerEpochVal,
+                                 epochs=epochsVal,
+                                 validation_data=(X_validation,y_validation),
+                                 shuffle=1)
 
-plt.figure()
-plt.plot(history.history["accuracy"])
-plt.plot(history.history["val_accuracy"])
-plt.legend(["training", "validation"])
-plt.title("Accuracy")
-plt.xlabel("epoch")
-plt.savefig("accuracy.png")
+#### PLOT THE RESULTS
+plt.figure(1)
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.legend(['training','validation'])
+plt.title('Loss')
+plt.xlabel('epoch')
+plt.figure(2)
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.legend(['training','validation'])
+plt.title('Accuracy')
+plt.xlabel('epoch')
+plt.show()
 
-score = model.evaluate(X_test, y_test, verbose=0)
-print("Test score    =", score[0])
-print("Test accuracy =", score[1])
+#### EVALUATE USING TEST IMAGES
+score = model.evaluate(X_test,y_test,verbose=0)
+print('Test Score = ',score[0])
+print('Test Accuracy =', score[1])
 
-model.save("model.keras")
-print("Saved trained model to model.keras")
+#### SAVE THE TRAINED MODEL
+model.save('model.h5')
+# pickle_out= open("model_trained.p", "wb")
+# pickle.dump(model,pickle_out)
+# pickle_out.close()

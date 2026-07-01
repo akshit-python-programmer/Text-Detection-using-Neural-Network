@@ -13,12 +13,6 @@ __pycache__/
 venv/
 env/
 
-# Training artifacts generated locally
-loss.png
-accuracy.png
-class_distribution.png
-model.keras
-
 # OS junk
 .DS_Store
 Thumbs.db

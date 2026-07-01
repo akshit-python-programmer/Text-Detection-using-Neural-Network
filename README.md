@@ -87,7 +87,7 @@ Hold a handwritten digit up to your webcam. The predicted digit and its confiden
 python modern/train.py
 ```
 
-This retrains the CNN on the `myData/` dataset and saves the result to `model.keras`, along with accuracy/loss plots.
+This retrains the CNN on the `myData/` dataset and saves the result to `model.h5`, and shows the accuracy/loss plots.
 
 > **Tip:** Run the scripts from the project root so the `myData` path and model files resolve correctly.
 
