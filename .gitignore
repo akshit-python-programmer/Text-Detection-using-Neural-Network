@@ -1,0 +1,24 @@
+# Editor / IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Training artifacts generated locally
+loss.png
+accuracy.png
+class_distribution.png
+model.keras
+
+# OS junk
+.DS_Store
+Thumbs.db
